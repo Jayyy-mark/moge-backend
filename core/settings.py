@@ -31,7 +31,11 @@ SECRET_KEY = 'django-insecure-l=mt)pdedl991uex0y%^xre#ndpma1wyxreh&jm=(i_vk*cz3e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "moge-backend.up.railway.app",
+    "localhost",
+    "127.0.0.1",
+]
 
 
 # Application definition
@@ -219,6 +223,7 @@ JWT_SECRET_KEY = "CHANGE_ME_SECURELY"
 FIELD_ENCRYPTION_KEY = b"CHANGE_ME_32_BYTE_KEY"
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "https://moge.up.railway.app",
     "http://localhost:5173",  # Vite frontend
     "http://10.99.58.196:5173",
 ]
