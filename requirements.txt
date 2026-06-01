@@ -13,3 +13,6 @@ django-cleanup
 pymupdf
 google 
 google-genai
+chromadb
+pypdf
+mysql-connector-python
