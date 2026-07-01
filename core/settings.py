@@ -32,7 +32,7 @@ SECRET_KEY = "django-insecure-l=mt)pdedl991uex0y%^xre#ndpma1wyxreh&jm=(i_vk*cz3e
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "moge-backend-production.up.railway.app/",
+    "moge-backend-production.up.railway.app",
     "moge-backend.up.railway.app",
     "localhost",
     "127.0.0.1",

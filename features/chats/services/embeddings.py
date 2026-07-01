@@ -16,13 +16,17 @@ from google.genai import types
 
 client = genai.Client()
 
-def get_embedding(text):
+def get_embedding(text, task_type="RETRIEVAL_DOCUMENT"):
+    text = (text or "").strip()
+    if not text:
+        text = "empty"
+
     # Use 'text-embedding-004' for standard text or 'gemini-embedding-2' for multimodal
     response = client.models.embed_content(
-        model="text-embedding-004",
+        model="gemini-embedding-001",
         contents=text,
         config=types.EmbedContentConfig(
-            task_type="RETRIEVAL_DOCUMENT" # Optional: specify based on your use case
+            task_type=task_type
         )
     )
     # The API returns a list of embeddings; extract the values

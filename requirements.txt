@@ -16,3 +16,5 @@ google-genai
 chromadb
 pypdf
 mysql-connector-python
+semantic-kernel
+python-docx
