@@ -218,6 +218,7 @@ JWT_SECRET_KEY = "CHANGE_ME_SECURELY"
 FIELD_ENCRYPTION_KEY = b"CHANGE_ME_32_BYTE_KEY"
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "https://moge-frontend-production.up.railway.app",
     "https://moge.up.railway.app",
     "http://localhost:5173",  # Vite frontend
     "http://127.0.0.1:5173",
