@@ -42,3 +42,27 @@ class UserController(APIView):
         return Response({
             "message" : message
         },status=status.HTTP_200_OK)
+    
+    def put(self, request: Request, id: int):
+        data = request.data
+        username = data.get("username")
+        email = data.get("email")
+        role = data.get("role")
+        
+        if not username or not email or not role:
+            return Response(
+                {"message": "username, email and role are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        try:
+            updated_user = self.service.update(id=id, username=username, email=email, role=role)
+            return Response(
+                {"message": "User updated successfully", "user": updated_user.__dict__},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"message": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )

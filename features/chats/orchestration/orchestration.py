@@ -71,12 +71,12 @@ class ChatOrchestrator:
             return "DOCUMENT"
         return "GENERAL"
 
-    def handle(self, user, message, file=None):
-        if not message and not file:
+    def handle(self, user, message, file=None, document_id=None):
+        if not message and not file and not document_id:
             return {"error": "Message or file required"}, 400
 
         prompt = message or "Summarize this document."
-        route = self.route(prompt, has_file=bool(file))
+        route = self.route(prompt, has_file=bool(file) or bool(document_id))
         user_id = str(user.id)
         upload_info = None
 

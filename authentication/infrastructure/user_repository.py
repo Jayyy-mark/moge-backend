@@ -19,4 +19,11 @@ class UserRepository:
         obj = MogUser.objects.get(id=id)
         obj.delete()
         return True
-
+    @staticmethod
+    def update(id: int, username: str, email: str, role: str) -> UserEntity:
+        obj = MogUser.objects.get(id=id)
+        obj.username = username
+        obj.email = email
+        obj.role = role
+        obj.save()
+        return UserMapper.toEntity(obj)

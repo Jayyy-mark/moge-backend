@@ -22,18 +22,52 @@ def gemini_generate(system_instruction, prompt, temperature=0.2):
     return (response.text or "").strip()
 
 
+# import requests
+
+# LLM_URL = "https://a198-35-247-164-35.ngrok-free.app/generate/"
+
+
+# def gemini_generate(system_instruction, prompt, temperature=0.2):
+
+#     response = requests.post(
+#         LLM_URL,
+#         json={
+#             "system_instruction": system_instruction,
+#             "prompt": prompt,
+#             "temperature": temperature,
+#         },
+#         timeout=300,
+#     )
+
+#     response.raise_for_status()
+
+#     return response.json()["text"]
+
+
 def query_mysql_database(sql_query: str):
     sql_query = (sql_query or "").strip().rstrip(";")
-    if not re.match(r"^(select|show|describe|desc|explain)\b", sql_query, re.IGNORECASE):
-        return {"error": "Only read-only SELECT, SHOW, DESCRIBE, DESC, and EXPLAIN queries are allowed."}
+    if not re.match(
+        r"^(select|show|describe|desc|explain)\b", sql_query, re.IGNORECASE
+    ):
+        return {
+            "error": "Only read-only SELECT, SHOW, DESCRIBE, DESC, and EXPLAIN queries are allowed."
+        }
 
-    if re.search(r"\b(insert|update|delete|drop|alter|truncate|create|replace|grant|revoke)\b", sql_query, re.IGNORECASE):
+    if re.search(
+        r"\b(insert|update|delete|drop|alter|truncate|create|replace|grant|revoke)\b",
+        sql_query,
+        re.IGNORECASE,
+    ):
         return {"error": "Unsafe SQL keyword detected. Query was not executed."}
 
     try:
         with connection.cursor() as cursor:
             cursor.execute(sql_query)
-            columns = [column[0] for column in cursor.description] if cursor.description else []
+            columns = (
+                [column[0] for column in cursor.description]
+                if cursor.description
+                else []
+            )
             rows = cursor.fetchmany(100) if columns else []
 
         return {
@@ -66,7 +100,9 @@ def extract_sql(text):
     cleaned = text.strip()
     cleaned = re.sub(r"^```(?:sql)?", "", cleaned, flags=re.IGNORECASE).strip()
     cleaned = re.sub(r"```$", "", cleaned).strip()
-    match = re.search(r"(select|show|describe|desc|explain)\b[\s\S]*", cleaned, re.IGNORECASE)
+    match = re.search(
+        r"(select|show|describe|desc|explain)\b[\s\S]*", cleaned, re.IGNORECASE
+    )
     return match.group(0).strip().rstrip(";") if match else cleaned.rstrip(";")
 
 
@@ -79,11 +115,13 @@ def answer_database_question(question, context=""):
     Prefer SELECT queries with LIMIT 100 when returning rows.
     Output only SQL. Do not use markdown.
     """
-    sql = extract_sql(gemini_generate(
-        system_prompt,
-        f"Schema:\n{schema}\n\nConversation context:\n{context}\n\nQuestion:\n{question}",
-        temperature=0,
-    ))
+    sql = extract_sql(
+        gemini_generate(
+            system_prompt,
+            f"Schema:\n{schema}\n\nConversation context:\n{context}\n\nQuestion:\n{question}",
+            temperature=0,
+        )
+    )
     result = query_mysql_database(sql)
 
     answer_prompt = """
@@ -91,11 +129,14 @@ def answer_database_question(question, context=""):
     Mention if the query failed or returned no rows.
     Be concise and use Burmese when the user writes Burmese.
     """
-    return gemini_generate(
-        answer_prompt,
-        f"Question: {question}\nSQL result JSON:\n{json.dumps(result, default=str)}",
-        temperature=0.1,
-    ), result
+    return (
+        gemini_generate(
+            answer_prompt,
+            f"Question: {question}\nSQL result JSON:\n{json.dumps(result, default=str)}",
+            temperature=0.1,
+        ),
+        result,
+    )
 
 
 def answer_document_question(question, docs, context=""):
@@ -105,7 +146,9 @@ def answer_document_question(question, docs, context=""):
     If the answer is missing, say the answer is not found in the analyzed documents.
     Be concise, structured, and helpful.
     """
-    docs_text = "\n\n".join(f"[Document chunk {index + 1}]\n{doc}" for index, doc in enumerate(docs))
+    docs_text = "\n\n".join(
+        f"[Document chunk {index + 1}]\n{doc}" for index, doc in enumerate(docs)
+    )
     return gemini_generate(
         system_prompt,
         f"Conversation context:\n{context}\n\nRetrieved document context:\n{docs_text}\n\nQuestion:\n{question}",
@@ -129,5 +172,7 @@ def answer_general_question(question, context=""):
 
 def call_llm(_client, messages):
     user_message = messages[-1]["content"]
-    context = "\n".join(f"{message['role']}: {message['content']}" for message in messages[:-1])
+    context = "\n".join(
+        f"{message['role']}: {message['content']}" for message in messages[:-1]
+    )
     return answer_general_question(user_message, context=context)

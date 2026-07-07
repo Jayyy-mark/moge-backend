@@ -5,12 +5,14 @@ from pypdf import PdfReader
 from .embeddings import get_embedding
 from .chroma_db import doc_collection
 
+
 def load_pdf(path):
     reader = PdfReader(path)
     text = ""
     for page in reader.pages:
         text += page.extract_text() + "\n"
     return text
+
 
 def load_docx(path):
     try:
@@ -20,6 +22,7 @@ def load_docx(path):
 
     document = Document(path)
     return "\n".join(paragraph.text for paragraph in document.paragraphs)
+
 
 def load_text(path):
     suffix = Path(path).suffix.lower()
@@ -31,15 +34,17 @@ def load_text(path):
         return Path(path).read_text(encoding="utf-8", errors="ignore")
     return ""
 
-def chunk_text(text, size=500, overlap=100):
+
+def chunk_text(text, size=2600, overlap=300):
     chunks = []
     i = 0
     while i < len(text):
-        chunk = text[i:i+size].strip()
+        chunk = text[i : i + size].strip()
         if chunk:
             chunks.append(chunk)
         i += size - overlap
     return chunks
+
 
 def file_fingerprint(file_path):
     digest = hashlib.sha256()
@@ -48,6 +53,7 @@ def file_fingerprint(file_path):
             digest.update(block)
     return digest.hexdigest()
 
+
 def document_exists(fingerprint, user_id=None):
     where = {"fingerprint": fingerprint}
     if user_id:
@@ -55,6 +61,7 @@ def document_exists(fingerprint, user_id=None):
 
     result = doc_collection.get(where=where, limit=1)
     return bool(result.get("ids"))
+
 
 def store_document(file_path, user_id=None):
     fingerprint = file_fingerprint(file_path)
@@ -76,17 +83,19 @@ def store_document(file_path, user_id=None):
         }
 
     chunks = chunk_text(text)
-
+    print("this is total chunk length : ", len(chunks))
     for chunk in chunks:
         doc_collection.add(
             ids=[str(uuid.uuid4())],
             embeddings=[get_embedding(chunk)],
             documents=[chunk],
-            metadatas=[{
-                "source": file_path,
-                "fingerprint": fingerprint,
-                "user_id": str(user_id) if user_id else "",
-            }]
+            metadatas=[
+                {
+                    "source": file_path,
+                    "fingerprint": fingerprint,
+                    "user_id": str(user_id) if user_id else "",
+                }
+            ],
         )
 
     return {
@@ -96,19 +105,18 @@ def store_document(file_path, user_id=None):
         "message": "Document stored in vector memory.",
     }
 
+
 def retrieve_docs(query, user_id=None, k=5):
     if not query:
         return []
 
     where = {"user_id": str(user_id)} if user_id else None
     query_kwargs = {
-        "query_embeddings": [get_embedding(query, task_type="RETRIEVAL_QUERY")],
+        "query_embeddings": [get_embedding(query)],
         "n_results": k,
     }
     if where:
         query_kwargs["where"] = where
 
-    results = doc_collection.query(
-        **query_kwargs
-    )
+    results = doc_collection.query(**query_kwargs)
     return results.get("documents", [[]])[0]
