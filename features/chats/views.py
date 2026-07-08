@@ -4,8 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Document
-from .orchestration.orchestration import ChatOrchestrator
-from .services.rag import store_document
+# from .orchestration.orchestration import ChatOrchestrator
+from .services.helpers import isPdfFileExist
 
 
 @api_view(["POST"])
@@ -16,11 +16,10 @@ def chat(request):
     file = request.FILES.get("file")
     document_id = request.data.get("document_id")
 
-    try:
-        payload, status = ChatOrchestrator().handle(request.user, message, file=file, document_id=document_id)
-        return Response(payload, status=status)
-    except RuntimeError as error:
-        return Response({"error": str(error)}, status=500)
+    return Response({
+        "message" : "Chat response"
+    })
+
 
 
 @api_view(["POST"])
@@ -31,9 +30,15 @@ def upload_chat_document(request):
     if not file:
         return Response({"error": "File required"}, status=400)
 
+    if isPdfFileExist(file):
+        return Response({
+            "error" : "file already existed",
+            "message" : "Upload another file!"
+         }, status=400)
+    
     try:
         document = Document.objects.create(file=file)
-        upload_info = store_document(document.file.path, user_id=str(request.user.id))
+        upload_info = store_document(document.file.path)
         return Response(
             {
                 "document_id": document.id,
