@@ -1,4 +1,5 @@
 from rest_framework.views import APIView, Request, Response
+from django.db.models import Q
 from features.locations.serializers import (
     LocationSearchSerializer,
     LocationSerializer,
@@ -8,6 +9,24 @@ from features.locations.models import Location
 from features.shared.helpers.helper import toApiResponse, log_action
 from features.locations.helpers import setLocationFilters
 from features.shared.helpers.helper import generateId
+from common.security.authorization.roles import Roles
+
+
+def get_location_department_filter(request) -> Q:
+    """
+    Returns a Q filter scoping locations to the requesting user's department.
+    Admins/super admins get an empty Q() (no restriction).
+    For others: filter by department_id = user.staff.department_id.
+    If the user has no linked staff/department, returns a safe empty-result filter.
+    """
+    if request.user.role in Roles.PRIVILEGED:
+        return Q()
+
+    staff = getattr(request.user, "staff", None)
+    if staff is None or staff.department_id is None:
+        return Q(pk__in=[])
+
+    return Q(department_id=staff.department_id)
 
 
 # <!--==============================
@@ -47,7 +66,8 @@ class LocationView(APIView):
 
     def get(self, request: Request) -> Response:
 
-        locations = Location.objects.all()
+        dept_filter = get_location_department_filter(request)
+        locations = Location.objects.filter(dept_filter)
         res = LocationSerializer(locations, many=True)
 
         return Response({"locations": res.data})
@@ -114,46 +134,49 @@ class GetLocationByColumnView(APIView):
         serializer.is_valid(raise_exception=True)
 
         filters = setLocationFilters(serializer.validated_data)
+        dept_filter = get_location_department_filter(request)
 
-        locations = Location.objects.filter(filters)
+        locations = Location.objects.filter(dept_filter).filter(filters)
 
         return Response({"locations": LocationSerializer(locations, many=True).data})
 
 
 class GetLocationOptionsView(APIView):
     def get(self, request: Request) -> Response:
+        dept_filter = get_location_department_filter(request)
+        qs = Location.objects.filter(dept_filter)
         return Response(
             {
                 "location_types": list(
-                    Location.objects.exclude(location_type__isnull=True)
+                    qs.exclude(location_type__isnull=True)
                     .exclude(location_type="")
                     .values_list("location_type", flat=True)
                     .distinct()
                 ),
                 "location_names": list(
-                    Location.objects.exclude(location_name__isnull=True)
+                    qs.exclude(location_name__isnull=True)
                     .exclude(location_name="")
                     .values_list("location_name", flat=True)
                     .distinct()
                 ),
                 "cities": list(
-                    Location.objects.exclude(city__isnull=True)
+                    qs.exclude(city__isnull=True)
                     .exclude(city="")
                     .values_list("city", flat=True)
                     .distinct()
                 ),
                 "longitudes": list(
-                    Location.objects.exclude(longitude__isnull=True)
+                    qs.exclude(longitude__isnull=True)
                     .values_list("longitude", flat=True)
                     .distinct()
                 ),
                 "latitudes": list(
-                    Location.objects.exclude(latitude__isnull=True)
+                    qs.exclude(latitude__isnull=True)
                     .values_list("latitude", flat=True)
                     .distinct()
                 ),
                 "coordinates": list(
-                    Location.objects.exclude(latitude__isnull=True)
+                    qs.exclude(latitude__isnull=True)
                     .exclude(longitude__isnull=True)
                     .values("latitude", "longitude")
                     .distinct()

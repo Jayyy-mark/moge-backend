@@ -3,6 +3,8 @@ from django.db.models import Q
 from features.categories.models import Category
 from .models import Document
 import pymupdf
+import unicodedata
+import re
 from .entities import Match, DeepSearchDocument
 from dataclasses import asdict
 from .serializers import DocumentSerializer
@@ -93,33 +95,62 @@ def getDocumentName():
     return document_names
 
 
+def _normalize(text: str) -> str:
+    """
+    Normalize Unicode text for consistent comparison.
+    - NFC normalization covers Burmese Unicode (handles composed vs decomposed forms).
+    - Strip zero-width joiners, non-breaking spaces, and other invisible chars
+      that commonly appear in Burmese PDF extraction.
+    """
+    text = unicodedata.normalize("NFC", text)
+    text = re.sub(r"[\u200b\u200c\u200d\ufeff\u00ad]", "", text)
+    return text
+
+
 def deepSearch(documents, keys):
+
+    if not keys:
+        return []
 
     document_list = []
 
+    normalized_key = _normalize(keys).lower()
+
     for document in documents:
         print("this is document name : ", document.document_name)
-        doc = pymupdf.open(document.document.path)
-        file = document.document_name
 
+        try:
+            doc = pymupdf.open(document.document.path)
+        except Exception as e:
+            print(f"Failed to open document {document.document_name}: {e}")
+            continue
+
+        file = document.document_name
         result = {}
 
         for page_num, page in enumerate(doc, start=1):
-        
-            text = page.get_text()
-            lines = text.splitlines()
+
+            try:
+                raw_text = page.get_text()
+            except Exception as e:
+                print(f"Failed to extract text from page {page_num}: {e}")
+                continue
+
+            lines = raw_text.splitlines()
 
             for line_num, line in enumerate(lines, start=1):
 
-                if keys.lower() in line.lower():
+                normalized_line = _normalize(line).lower()
+
+                if normalized_key in normalized_line:
 
                     if file not in result:
                         result[file] = []
 
                     result[file].append({
-                        "text" : line,
-                        "line" : line_num,
-                        "page" : page_num
+                        "text": line.strip(),
+                        "line": line_num,
+                        "page": page_num,
                     })
 
         for filename, matches in result.items():
@@ -143,6 +174,7 @@ def deepSearch(documents, keys):
                 )
             )
 
-    return [ asdict(item) for item in document_list ]
+    return [asdict(item) for item in document_list]
+
 
 

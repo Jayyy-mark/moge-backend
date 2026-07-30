@@ -40,6 +40,7 @@ class LocationUpdateSerializer(serializers.ModelSerializer):
             "latitude",
             "description",
             "city",
+            "state_division",
             "date",
         ]
 

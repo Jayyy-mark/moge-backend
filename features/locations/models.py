@@ -21,6 +21,9 @@ class Location(models.Model):
     description = models.TextField(null=True, blank=True)
 
     city = models.CharField(max_length=50, unique=False, null=True, blank=True)
+    state_division = models.CharField(
+        max_length=50, unique=False, null=True, blank=True
+    )
 
     date = models.DateField(null=False)
 

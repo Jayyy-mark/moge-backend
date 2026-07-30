@@ -32,11 +32,13 @@ SECRET_KEY = "django-insecure-l=mt)pdedl991uex0y%^xre#ndpma1wyxreh&jm=(i_vk*cz3e
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    "moge-backend-testing.up.railway.app",
-    "moge-backend-production.up.railway.app",
-    "moge-backend.up.railway.app",
-    "localhost",
-    "127.0.0.1",
+    # "moge-backend-testing.up.railway.app",
+    # "moge-backend-production.up.railway.app",
+    # "moge-backend.up.railway.app",
+    # "localhost",
+    # "127.0.0.1",
+    # "10.41.250.196",
+    "*"
 ]
 
 
@@ -107,7 +109,7 @@ WSGI_APPLICATION = "core.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 SECRET_KEY = os.getenv("SECRET_KEY")
-DEBUG = os.getenv("DEBUG", "False") == "True"
+DEBUG = "True"
 
 DATABASES = {
     "default": {
@@ -188,6 +190,7 @@ REST_FRAMEWORK = {
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
+    "EXCEPTION_HANDLER": "common.error.error_handler.custom_exception_handler",
 }
 
 REST_AUTH = {
@@ -212,6 +215,7 @@ INSTALLED_APPS += [
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
+    "django_extensions",
 ]
 
 
@@ -221,9 +225,12 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "https://moge-frontend-production.up.railway.app",
     "https://moge.up.railway.app",
-    "http://localhost:5173",  # Vite frontend
-    "http://127.0.0.1:5173",
-    "http://10.99.58.196:5173",
+    "https://localhost:5173",  # Vite frontend
+    "https://127.0.0.1:5173",
+    "https://10.99.58.196:5173",
+    "https://192.168.1.131:5173",
+    "https://192.168.20.39:5173",
+    "https://10.41.250.196:5173",
 ]
 
 APPEND_SLASH = False
@@ -247,6 +254,21 @@ CSRF_COOKIE_SAMESITE = "Lax" if DEBUG else "None"
 
 SESSION_COOKIE_SECURE = False if DEBUG else True
 CSRF_COOKIE_SECURE = False if DEBUG else True
+
+
+# REST_AUTH.update(
+#     {
+#         "JWT_AUTH_COOKIE_USE_CSRF": False,
+#         "JWT_AUTH_SAMESITE": "Lax",
+#         "JWT_AUTH_SECURE": True,
+#     }
+# )
+
+# SESSION_COOKIE_SECURE = False
+# CSRF_COOKIE_SECURE = False
+
+# SESSION_COOKIE_SAMESITE = "Lax"
+# CSRF_COOKIE_SAMESITE = "Lax"
 
 # Email Configuration
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

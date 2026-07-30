@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from django.shortcuts import render
 from rest_framework.views import APIView, Request, Response
+from django.db.models import Q
 from features.documents.serializers import (
     DocumentSerializer,
     DocumentSearchSerializer,
@@ -11,6 +12,26 @@ from features.documents.serializers import (
 from features.documents.models import Document
 from features.shared.helpers.helper import generateId, toApiResponse, log_action
 from features.documents.helpers import setDocumentFilters, deepSearch
+from common.security.authorization.roles import Roles
+
+
+def get_department_filter(request) -> Q:
+    """
+    Returns a Q filter that restricts documents to the requesting user's department.
+    For admin / super admin roles: returns an empty Q() (no restriction).
+    For all other roles: filters by staff__department_id.
+    If the user has no linked staff, returns a filter that matches nothing (safe fallback).
+    """
+    if request.user.role in Roles.PRIVILEGED:
+        return Q()
+
+    staff = getattr(request.user, "staff", None)
+    if staff is None or staff.department_id is None:
+        # No department linked — return nothing to prevent data leakage
+        return Q(pk__in=[])
+
+    return Q(staff__department_id=staff.department_id)
+
 
 
 # <!--==============================
@@ -55,9 +76,10 @@ class DocumentView(APIView):
 
     def get(self, request: Request) -> Response:
 
+        dept_filter = get_department_filter(request)
         documents = Document.objects.select_related(
             "staff", "category", "dtype"
-        ).filter(is_archived=False, is_recycled=False)
+        ).filter(dept_filter, is_archived=False, is_recycled=False)
         res = DocumentSerializer(documents, many=True)
 
         return Response({"documents": res.data})
@@ -65,9 +87,10 @@ class DocumentView(APIView):
     def put(self, request: Request, id: int) -> Response:
 
         document = Document.objects.get(id=id)
+        print("this is data from upate document : ", request.data)
         serializer = DocumentUpdateSerializer(instance=document, data=request.data)
         serializer.is_valid(raise_exception=True)
-
+        print("this is data from upate document : ", serializer.validated_data)
         document = serializer.save()
 
         if document:
@@ -151,11 +174,13 @@ class GetDocumentByColumnView(APIView):
         serializer.is_valid(raise_exception=True)
 
         filters, category_qs = setDocumentFilters(serializer.validated_data)
+        dept_filter = get_department_filter(request)
 
         documents = (
             Document.objects.select_related(
                 "staff", "category", "dtype", "staff__department"
             )
+            .filter(dept_filter)
             .filter(filters)
             .filter(is_archived=False, is_recycled=False)
         )
@@ -173,9 +198,10 @@ class ArchivedDocumentView(APIView):
 
     def get(self, request: Request) -> Response:
 
+        dept_filter = get_department_filter(request)
         archived_documents = Document.objects.select_related(
             "staff", "category", "dtype"
-        ).filter(is_archived=True)
+        ).filter(dept_filter, is_archived=True)
 
         return Response(
             {"documents": DocumentSerializer(archived_documents, many=True).data}
@@ -245,12 +271,14 @@ class GetArchivedDocumentByColumnView(APIView):
         serializer.is_valid(raise_exception=True)
 
         filters, category_qs = setDocumentFilters(serializer.validated_data)
+        dept_filter = get_department_filter(request)
 
         print("this is filters ", filters)
         documents = (
             Document.objects.select_related(
                 "staff", "category", "dtype", "staff__department"
             )
+            .filter(dept_filter)
             .filter(filters)
             .filter(is_archived=True)
         )
@@ -269,9 +297,10 @@ class RecycledDocumentView(APIView):
 
     def get(self, request: Request) -> Response:
 
+        dept_filter = get_department_filter(request)
         recycled_documents = Document.objects.select_related(
             "staff", "category", "dtype"
-        ).filter(is_recycled=True)
+        ).filter(dept_filter, is_recycled=True)
 
         return Response(
             {"documents": DocumentSerializer(recycled_documents, many=True).data}
@@ -333,11 +362,13 @@ class GetRecycledDocumentByColumnView(APIView):
         serializer.is_valid(raise_exception=True)
 
         filters, category_qs = setDocumentFilters(serializer.validated_data)
+        dept_filter = get_department_filter(request)
 
         documents = (
             Document.objects.select_related(
                 "staff", "category", "dtype", "staff__department"
             )
+            .filter(dept_filter)
             .filter(filters)
             .filter(is_recycled=True)
         )
@@ -355,9 +386,10 @@ class GetExpiredDocumentView(APIView):
         today = timezone.now().date()
         print("this is today ", today)
 
+        dept_filter = get_department_filter(request)
         expired_documents = Document.objects.select_related(
             "staff", "category", "dtype"
-        ).filter(expired_at=today)
+        ).filter(dept_filter, expired_at=today)
 
         return Response(
             {"documents": DocumentSerializer(expired_documents, many=True).data}
@@ -375,10 +407,11 @@ class DeepSearchDocumentView(APIView):
         serializer.is_valid(raise_exception=True)
 
         filters, category_qs = setDocumentFilters(serializer.validated_data)
+        dept_filter = get_department_filter(request)
 
         documents = Document.objects.select_related(
             "staff", "category", "dtype", "staff__department"
-        ).filter(filters)
+        ).filter(dept_filter).filter(filters)
 
         if category_qs:
             documents = documents.filter(category__in=category_qs)
