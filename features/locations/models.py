@@ -34,3 +34,17 @@ class Location(models.Model):
         null=True,
         blank=True,
     )
+
+
+class LocationPhoto(models.Model):
+
+    class Meta:
+        db_table = "location_photos"
+
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name="photos"
+    )
+    photo = models.FileField(upload_to="locations/photos/")
+    created_at = models.DateTimeField(auto_now_add=True)

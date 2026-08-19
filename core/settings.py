@@ -108,7 +108,10 @@ WSGI_APPLICATION = "core.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = (
+    os.getenv("SECRET_KEY")
+    or "django-insecure-moge-system-secret-key-must-be-at-least-32-bytes-long"
+)
 DEBUG = "True"
 
 DATABASES = {
@@ -188,6 +191,7 @@ MIDDLEWARE += [
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "dj_rest_auth.jwt_auth.JWTCookieAuthentication",
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "EXCEPTION_HANDLER": "common.error.error_handler.custom_exception_handler",
@@ -219,19 +223,20 @@ INSTALLED_APPS += [
 ]
 
 
-JWT_SECRET_KEY = "CHANGE_ME_SECURELY"
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY") or SECRET_KEY
 FIELD_ENCRYPTION_KEY = b"CHANGE_ME_32_BYTE_KEY"
 CORS_ALLOW_CREDENTIALS = True
-CORS_ALLOWED_ORIGINS = [
-    "https://moge-frontend-production.up.railway.app",
-    "https://moge.up.railway.app",
-    "https://localhost:5173",  # Vite frontend
-    "https://127.0.0.1:5173",
-    "https://10.99.58.196:5173",
-    "https://192.168.1.131:5173",
-    "https://192.168.20.39:5173",
-    "https://10.41.250.196:5173",
-]
+CORS_ALLOW_ALL_ORIGINS = True
+# CORS_ALLOWED_ORIGINS = [
+#     "https://moge-frontend-production.up.railway.app",
+#     "https://moge.up.railway.app",
+#     "https://localhost:5173",  # Vite frontend
+#     "https://127.0.0.1:5173",
+#     "https://10.99.58.196:5173",
+#     "https://192.168.1.131:5173",
+#     "https://192.168.20.39:5173",
+#     "https://10.41.250.196:5173",
+# ]
 
 APPEND_SLASH = False
 SITE_ID = 1

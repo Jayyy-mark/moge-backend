@@ -1,11 +1,22 @@
 from rest_framework import serializers
-from features.locations.models import Location
+from features.locations.models import Location, LocationPhoto
+
+
+class LocationPhotoSerializer(serializers.ModelSerializer):
+    """
+    Serializer for multiple photos attached to a location.
+    """
+
+    class Meta:
+        model = LocationPhoto
+        fields = ["id", "photo", "created_at"]
 
 
 class LocationSerializer(serializers.ModelSerializer):
     """
     Serializer for the Location model.
     """
+    photos = LocationPhotoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Location

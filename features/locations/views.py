@@ -32,6 +32,8 @@ def get_location_department_filter(request) -> Q:
 # <!--==============================
 #   LOCATIONS VIEWS
 # ================================-->
+from features.locations.models import Location, LocationPhoto
+
 class LocationView(APIView):
 
     def post(self, request: Request) -> Response:
@@ -49,6 +51,14 @@ class LocationView(APIView):
             raise (e)
 
         location = serializer.save()
+
+        # Handle multiple photos save
+        uploaded_photos = request.FILES.getlist("photos") or request.FILES.getlist("photo")
+        for file in uploaded_photos:
+            LocationPhoto.objects.create(location=location, photo=file)
+            if not location.photo:
+                location.photo = file
+                location.save()
 
         if location:
             log_action(

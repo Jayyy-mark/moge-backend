@@ -17,22 +17,27 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from authentication.presentation.mobile_auth_controller import MobileLoginView
+from rest_framework_simplejwt.views import TokenRefreshView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/',include('authentication.presentation.urls')),
+    path('api/mobile/auth/login/', MobileLoginView.as_view(), name='mobile_login_direct'),
+    path('api/mobile/auth/token/refresh/', TokenRefreshView.as_view(), name='mobile_refresh_direct'),
     path('account/', include('allauth.urls')),   
-    path('api/role/', include('features.roles.presentation.api.urls')),
-    path('api/rank/', include('features.ranks.presentation.rank_urls')),
-    path('api/room/', include('features.rooms.presentation.room_urls')),
-    path('api/stype/', include('features.stypes.presentation.stype_urls')),
-    path('api/staff/', include('features.staffs.presentation.staff_api')),
+    path('api/role/', include('features.roles.urls')),
+    path('api/rank/', include('features.ranks.urls')),
+    path('api/room/', include('features.rooms.urls')),
+    path('api/stype/', include('features.stypes.urls')),
+    path('api/staff/', include('features.staffs.urls')),
     path('api/category/', include('features.categories.urls')),
     path('api/document/', include('features.documents.urls')),
     path('api/building/', include('features.buildings.urls')),
     path('api/log/', include('features.logs.urls')),
     path('api/dtype/', include('features.dtypes.urls')),
     path('api/', include('features.chats.urls')),
-    path('api/department/', include('features.departments.presentation.department_api')),
+    path('api/department/', include('features.departments.urls')),
     path('api/dashboard/', include('features.dashboard.urls')),
     path('api/location/', include('features.locations.urls')),
 ]
