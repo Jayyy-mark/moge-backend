@@ -1,12 +1,13 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Optional
 
 
 @dataclass
 class Match:
-    page:str
     line:str
     text:str
+    page: Optional[str] = None
 
 @dataclass
 class DeepSearchDocument:

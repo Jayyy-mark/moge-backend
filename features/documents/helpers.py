@@ -3,6 +3,7 @@ from django.db.models import Q
 from features.categories.models import Category
 from .models import Document
 import pymupdf
+from docx import Document as DocxDocument
 import unicodedata
 import re
 from .entities import Match, DeepSearchDocument
@@ -107,6 +108,70 @@ def _normalize(text: str) -> str:
     return text
 
 
+def _search_pdf(file_path, normalized_key):
+    """Extract text from PDF and return matches with page and line numbers."""
+    matches = []
+
+    try:
+        doc = pymupdf.open(file_path)
+    except Exception as e:
+        print(f"Failed to open PDF {file_path}: {e}")
+        return matches
+
+    for page_num, page in enumerate(doc, start=1):
+
+        try:
+            raw_text = page.get_text()
+        except Exception as e:
+            print(f"Failed to extract text from page {page_num}: {e}")
+            continue
+
+        lines = raw_text.splitlines()
+
+        for line_num, line in enumerate(lines, start=1):
+
+            normalized_line = _normalize(line).lower()
+
+            if normalized_key in normalized_line:
+                matches.append({
+                    "text": line.strip(),
+                    "line": line_num,
+                    "page": page_num,
+                })
+
+    doc.close()
+    return matches
+
+
+def _search_docx(file_path, normalized_key):
+    """Extract text from DOCX and return matches with line numbers only."""
+    matches = []
+
+    try:
+        doc = DocxDocument(file_path)
+    except Exception as e:
+        print(f"Failed to open DOCX {file_path}: {e}")
+        return matches
+
+    for line_num, paragraph in enumerate(doc.paragraphs, start=1):
+
+        line = paragraph.text
+
+        if not line.strip():
+            continue
+
+        normalized_line = _normalize(line).lower()
+
+        if normalized_key in normalized_line:
+            matches.append({
+                "text": line.strip(),
+                "line": line_num,
+                "page": None,
+            })
+
+    return matches
+
+
 def deepSearch(documents, keys):
 
     if not keys:
@@ -119,46 +184,23 @@ def deepSearch(documents, keys):
     for document in documents:
         print("this is document name : ", document.document_name)
 
-        try:
-            doc = pymupdf.open(document.document.path)
-        except Exception as e:
-            print(f"Failed to open document {document.document_name}: {e}")
+        file_path = document.document.path
+        ext = file_path.rsplit(".", 1)[-1].lower() if "." in file_path else ""
+
+        if ext == "pdf":
+            file_matches = _search_pdf(file_path, normalized_key)
+        elif ext in ("docx", "doc"):
+            file_matches = _search_docx(file_path, normalized_key)
+        else:
+            print(f"Unsupported file type '{ext}' for {document.document_name}, skipping.")
             continue
 
-        file = document.document_name
-        result = {}
-
-        for page_num, page in enumerate(doc, start=1):
-
-            try:
-                raw_text = page.get_text()
-            except Exception as e:
-                print(f"Failed to extract text from page {page_num}: {e}")
-                continue
-
-            lines = raw_text.splitlines()
-
-            for line_num, line in enumerate(lines, start=1):
-
-                normalized_line = _normalize(line).lower()
-
-                if normalized_key in normalized_line:
-
-                    if file not in result:
-                        result[file] = []
-
-                    result[file].append({
-                        "text": line.strip(),
-                        "line": line_num,
-                        "page": page_num,
-                    })
-
-        for filename, matches in result.items():
+        if file_matches:
 
             document_list.append(
                 DeepSearchDocument(
                     id=document.id,
-                    filename=filename,
+                    filename=document.document_name,
                     department_name=document.staff.department.department_name,
                     uploaded_at=document.created_at,
                     category=document.category.category_name,
@@ -169,12 +211,13 @@ def deepSearch(documents, keys):
                             line=m["line"],
                             text=m["text"],
                         )
-                        for m in matches
+                        for m in file_matches
                     ]
                 )
             )
 
     return [asdict(item) for item in document_list]
+
 
 
 

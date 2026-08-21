@@ -3,6 +3,9 @@ from features.staffs.models import Staff
 from features.categories.models import Category
 from features.dtypes.models import Dtype
 from django.utils import timezone
+from features.shared.helpers.storage import UnicodePreservingStorage
+
+unicode_storage = UnicodePreservingStorage()
 
 # Create your models here.
 class Document(models.Model):
@@ -20,7 +23,7 @@ class Document(models.Model):
         unique=False,
         null=False
     )
-    document = models.FileField(upload_to="documents/", null=True, blank=True)
+    document = models.FileField(upload_to="documents/", storage=unicode_storage, null=True, blank=True)
 
     description = models.CharField(max_length=225, unique=False, null=True, blank=True)
 

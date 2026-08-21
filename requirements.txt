@@ -12,11 +12,10 @@ gunicorn
 django-cleanup
 pymupdf
 google-genai
-google-generativeai
 langchain
 langchain-core
 langchain-community
-langchain-google-genai==2.0.10
+langchain-google-genai
 langchain-text-splitters
 chromadb
 pypdf
